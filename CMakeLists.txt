@@ -59,8 +59,6 @@ message(INFO "Linker flags: " ${CMAKE_C_LINK_FLAGS})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
-
-add_subdirectory(src/can_constants)
 add_subdirectory(src/ModuCard-software-base)
 
 # Link directories setup

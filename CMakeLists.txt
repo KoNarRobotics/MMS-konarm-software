@@ -24,7 +24,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME YOUR_PROJECT_NAME_HERE)
+set(CMAKE_PROJECT_NAME MMS-konarm-software)
 set(PROJECT_MAJOR_VERSION 0)
 
 

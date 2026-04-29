@@ -84,21 +84,26 @@ se::GpioPin gpio_user_led_2(*GPIO_LED_2_GPIO_Port, GPIO_LED_2_Pin);
 ////////////////////////////////////////////////////////////////////////////////
 // REST OF THE CODE
 
-extern "C" {
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-  if (htim->Instance == TIM6) {
-    se::Ticker::get_instance().irq_update_ticker();
-    // canopen_app_interrupt();
-    HAL_IncTick();
-  }
+extern "C"
+{
+  void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+  {
+    if (htim->Instance == TIM6)
+    {
+      se::Ticker::get_instance().irq_update_ticker();
+      // canopen_app_interrupt();
+      HAL_IncTick();
+    }
 
-  if (htim->Instance == TIM7) {
-    HAL_IncTick();
+    if (htim->Instance == TIM7)
+    {
+      HAL_IncTick();
+    }
   }
 }
-}
 
-Status canopen_task(SimpleTask &, void *args) {
+Status canopen_task(SimpleTask &, void *args)
+{
   (void)args;
   // canopen_app_process();
   return Status::OK();
@@ -106,7 +111,8 @@ Status canopen_task(SimpleTask &, void *args) {
 
 extern void MX_CAN1_Init();
 
-void main_prog() {
+void main_prog()
+{
   // START ALL INTERRUPTS
   HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
@@ -179,6 +185,8 @@ void main_prog() {
 
   STMEPIC_NONE_OR_HRESET(can1->hardware_start());
   STMEPIC_NONE_OR_HRESET(can2->hardware_start());
+
+  init_board(); // ???
 
   // STMEPIC_ASSING_TO_OR_HRESET(
   //     modu_card_board,

@@ -17,6 +17,8 @@ set(CMAKE_C_EXTENSIONS ON)
 # C++ Configuration  [1/4]
 set(CMAKE_CXX_STANDARD 20)
 
+option(ONETIME_CODE "Build to add first config to EEPROM" OFF)
+
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -24,7 +26,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME YOUR_PROJECT_NAME_HERE)
+set(CMAKE_PROJECT_NAME MMS-konarm-software)
 set(PROJECT_MAJOR_VERSION 0)
 
 
@@ -57,6 +59,18 @@ target_include_directories( mc_firmware PUBLIC
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
+
+if(ONETIME_CODE)
+    if(NOT DEFINED JOINT_IDX)
+      message(FATAL_ERROR "JOINT_IDX must be set when ONTIME_CODE is ON")
+    endif()
+
+    message(STATUS "Building with ONETIME_CODE provisioning mode")
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE 
+      ONETIME_CODE
+      JOINT_IDX=${JOINT_IDX}
+      )
+endif()
 
 
 set(STMEPIC_MIN_VERSION_REQUIRED_ENABLED ON)

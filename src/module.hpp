@@ -80,6 +80,8 @@ public:
   void callback_write_set_torque(mcan::konarm_hat::commands::SetTorque &var);
   void callback_write_set_control_mode(mcan::konarm_hat::commands::SetControlMode &var);
   void callback_write_config(mcan::konarm_hat::configs::Config &var);
+  void callback_write_clear_errors(mcan::konarm_hat::commands::ClearErrors &var);
+  void callback_write_set_and_reset(mcan::konarm_hat::commands::SetAndReset &var);
 
   auto get_write_callbacks()
   {
@@ -87,7 +89,9 @@ public:
         std::make_pair(&JointInterface::callback_write_set_position, &JointInterface::set_position),
         std::make_pair(&JointInterface::callback_write_set_torque, &JointInterface::set_torque),
         std::make_pair(&JointInterface::callback_write_set_control_mode, &JointInterface::set_control_mode),
-        std::make_pair(&JointInterface::callback_write_config, &JointInterface::config));
+        std::make_pair(&JointInterface::callback_write_config, &JointInterface::config),
+        std::make_pair(&JointInterface::callback_write_clear_errors, &JointInterface::clear_errors),
+        std::make_pair(&JointInterface::callback_write_set_and_reset, &JointInterface::set_and_reset));
   }
 };
 
@@ -102,7 +106,7 @@ inline uint32_t get_unique_id()
 extern se::SimpleTask task_module_control_loop;
 extern se::SimpleTask task_module_update_values_for_can;
 
-using ModuleType = mcan::McSlaveDriver<mcan::konarm_hat::McCanSlaveInterface_t,
+using ModuleType = mcan::McSlaveDriver<JointInterface,
                                        mcan::konarm_hat::Hardware_t>;
 
 struct joint

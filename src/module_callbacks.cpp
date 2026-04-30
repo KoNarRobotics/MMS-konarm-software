@@ -11,26 +11,26 @@ namespace se = stmepic;
 
 // TODO : Uzupełnić callbacki
 
-void mcan::konarm_hat::McCanSlaveInterface_t::callback_write_set_position(commands::SetPosition &variable)
+void JointInterface::callback_write_set_position(mcan::konarm_hat::commands::SetPosition &variable)
 {
 }
 
-void mcan::konarm_hat::McCanSlaveInterface_t::callback_write_set_torque(commands::SetTorque &variable)
+void JointInterface::callback_write_set_torque(mcan::konarm_hat::commands::SetTorque &variable)
 {
 }
 
-void mcan::konarm_hat::McCanSlaveInterface_t::callback_write_set_control_mode(commands::SetControlMode &variable)
+void JointInterface::callback_write_set_control_mode(mcan::konarm_hat::commands::SetControlMode &variable)
 {
 }
 
-void mcan::konarm_hat::McCanSlaveInterface_t::callback_write_config(configs::Config &variable)
+void JointInterface::callback_write_config(mcan::konarm_hat::configs::Config &variable)
 {
 }
 
-void mcan::konarm_hat::McCanSlaveInterface_t::callback_write_clear_errors(commands::ClearErrors &variable)
+void JointInterface::callback_write_clear_errors(mcan::konarm_hat::commands::ClearErrors &variable)
 {
 }
 
-void mcan::konarm_hat::McCanSlaveInterface_t::callback_write_set_and_reset(commands::SetAndReset &variable)
+void JointInterface::callback_write_set_and_reset(mcan::konarm_hat::commands::SetAndReset &variable)
 {
 }

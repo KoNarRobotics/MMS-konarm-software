@@ -92,6 +92,7 @@ se::Status init_joints_arr()
       return se::Status::Invalid(maybe_module0.status().to_string().c_str());
     }
     joint1.module = maybe_module0.valueOrDie();
+    joint1.joint_can_interface.joint_idx = 0;
 
     joint2.module = nullptr;
     joint3.module = nullptr;
@@ -149,6 +150,7 @@ se::Status init_joints_arr()
       return se::Status::Invalid(maybe_module0.status().to_string().c_str());
     }
     joint1.module = maybe_module0.valueOrDie();
+    joint1.joint_can_interface.joint_idx = 0;
 
     auto maybe_module1 = ModuleType::Make(nullptr, get_unique_id());
     if (!maybe_module1.ok())
@@ -156,6 +158,7 @@ se::Status init_joints_arr()
       return se::Status::Invalid(maybe_module1.status().to_string().c_str());
     }
     joint2.module = maybe_module1.valueOrDie();
+    joint2.joint_can_interface.joint_idx = 1;
 
     auto maybe_module2 = ModuleType::Make(nullptr, get_unique_id());
     if (!maybe_module2.ok())
@@ -163,6 +166,7 @@ se::Status init_joints_arr()
       return se::Status::Invalid(maybe_module2.status().to_string().c_str());
     }
     joint3.module = maybe_module2.valueOrDie();
+    joint3.joint_can_interface.joint_idx = 2;
 
     auto maybe_encoder0 = se::encoders::EncoderAbsoluteMagneticMT6701::Make(i2c);
     if (!maybe_encoder0.ok())

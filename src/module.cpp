@@ -33,6 +33,7 @@ joint joint2;
 joint joint3;
 magic_number magic_number_eeprom;
 board_id id;
+ErrorBoard error_board;
 
 void init_vesc_motor_settings()
 {
@@ -273,8 +274,8 @@ se::Status init_joints_arr()
       break;
     }
 
-    joint1.motor->device_start();
-    joint1.encoder->device_start();
+    STMEPIC_RETURN_ON_ERROR(joint1.motor->device_start());
+    STMEPIC_RETURN_ON_ERROR(joint1.encoder->device_start());
 
     joint2.encoder = nullptr;
     joint2.motor = nullptr;
@@ -296,7 +297,7 @@ se::Status init_joints_arr()
       return se::Status::Invalid(maybe_encoder0.status().to_string().c_str());
     }
     joint1.encoder = maybe_encoder0.valueOrDie();
-    joint1.encoder->device_start();
+    STMEPIC_RETURN_ON_ERROR(joint1.encoder->device_start());
 
     auto maybe_encoder1 = se::encoders::EncoderAbsoluteMagneticMT6701::Make(i2c);
     if (!maybe_encoder1.ok())
@@ -304,7 +305,7 @@ se::Status init_joints_arr()
       return se::Status::Invalid(maybe_encoder1.status().to_string().c_str());
     }
     joint2.encoder = maybe_encoder1.valueOrDie();
-    joint2.encoder->device_start();
+    STMEPIC_RETURN_ON_ERROR(joint2.encoder->device_start());
 
     auto maybe_encoder2 = se::encoders::EncoderAbsoluteMagneticMT6701::Make(i2c);
     if (!maybe_encoder2.ok())
@@ -312,7 +313,7 @@ se::Status init_joints_arr()
       return se::Status::Invalid(maybe_encoder2.status().to_string().c_str());
     }
     joint3.encoder = maybe_encoder2.valueOrDie();
-    joint3.encoder->device_start();
+    STMEPIC_RETURN_ON_ERROR(joint3.encoder->device_start());
 
     auto maybe_motor0 = se::motor::VescMotor::Make(can2);
     if (!maybe_motor0.ok())
@@ -322,7 +323,7 @@ se::Status init_joints_arr()
     joint1.motor = maybe_motor0.valueOrDie();
     joint1.motor->device_set_settings(settings_motor4);
     joint1.motor->set_max_velocity(VESC_MOTOR_4_VEL);
-    joint1.motor->device_start();
+    STMEPIC_RETURN_ON_ERROR(joint1.motor->device_start());
 
     auto maybe_motor1 = se::motor::VescMotor::Make(can2);
     if (!maybe_motor1.ok())
@@ -332,7 +333,7 @@ se::Status init_joints_arr()
     joint2.motor = maybe_motor1.valueOrDie();
     joint2.motor->device_set_settings(settings_motor5);
     joint2.motor->set_max_velocity(VESC_MOTOR_5_VEL);
-    joint2.motor->device_start();
+    STMEPIC_RETURN_ON_ERROR(joint2.motor->device_start());
 
     auto maybe_motor2 = se::motor::VescMotor::Make(can2);
     if (!maybe_motor2.ok())
@@ -342,7 +343,7 @@ se::Status init_joints_arr()
     joint3.motor = maybe_motor2.valueOrDie();
     joint3.motor->device_set_settings(settings_motor6);
     joint3.motor->set_max_velocity(VESC_MOTOR_6_VEL);
-    joint3.motor->device_start();
+    STMEPIC_RETURN_ON_ERROR(joint3.motor->device_start());
 
     joint1.config = config_joint4;
     joint2.config = config_joint5;
@@ -357,18 +358,18 @@ se::Status init_joints_arr()
   return se::Status::OK();
 }
 
+// TODO : Dodać jakoś sygnalizacje errorów z silnikiem
+
 se::Status check_for_errors(se::SimpleTask &, void *args)
 {
+  // Joint errors
   for (auto &joint : joints_arr)
   {
-    // Encoders
-    if (!joint.encoder->device_is_connected().valueOrDie())
-    {
-    }
+    joint.errors.encoder_motor_disconnect = !joint.encoder->device_is_connected().valueOrDie();
 
-    // VESC
     if (!joint.motor->device_is_connected().valueOrDie())
     {
+      // do sth
     }
   }
 

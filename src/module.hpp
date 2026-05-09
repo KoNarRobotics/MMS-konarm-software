@@ -100,6 +100,36 @@ extern joint_can_config config_joint4;
 extern joint_can_config config_joint5;
 extern joint_can_config config_joint6;
 
+// There are none temp sensors on boards.
+// Temp variables are kept for ROS compatibility
+// Same with voltage
+struct ErrorJoint
+{
+  bool encoder_arm_disconnect = false;
+  bool encoder_motor_disconnect = false;
+  bool can_disconnected = false;
+  bool can_error = false;
+  bool temp_engine_overheating = false;
+  bool temp_driver_overheating = false;
+};
+
+struct ErrorBoard
+{
+  bool temp_board_overheating = false;
+  bool temp_engine_sensor_disconnect = false;
+  bool temp_driver_sensor_disconnect = false;
+  bool temp_board_sensor_disconnect = false;
+
+  // board errors
+  bool baord_overvoltage = false;
+  bool baord_undervoltage = false;
+
+  // other errors
+  bool controler_motor_limit_position = false;
+};
+
+extern ErrorBoard error_board;
+
 inline uint32_t get_unique_id()
 {
   uint32_t t1 = HAL_GetUIDw0();
@@ -115,6 +145,7 @@ struct joint
   joint_can_config config;
   std::shared_ptr<se::motor::VescMotor> motor;
   std::shared_ptr<se::encoders::EncoderAbsoluteMagneticMT6701> encoder;
+  ErrorJoint errors;
 };
 
 struct board_id

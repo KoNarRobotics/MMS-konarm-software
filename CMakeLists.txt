@@ -54,7 +54,7 @@ target_include_directories( mc_firmware PUBLIC
 )
 
 
-
+add_subdirectory(src/can_constants)
 
 
 # Create an executable object type
@@ -99,7 +99,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/main_prog.cpp
   src/module_callbacks.cpp
   src/module.cpp
-
 )
 
 # Add include paths
@@ -107,6 +106,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
   # Add user defined include paths
   Core/Inc
   src
+  src/can_constants/can_messages/output
   )
 
 # Add project symbols (macros)
@@ -119,7 +119,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
   stm32cubemx
   stmepic
   mc_firmware
-  # can_constants
+  can_constants
 )
 
 

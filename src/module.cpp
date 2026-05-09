@@ -6,9 +6,11 @@
 #include "main_prog.hpp"
 #include "status.hpp"
 #include "stmepic.hpp"
+#include "konarm_hat_types.hpp"
+#include "can_messages.h"
+#include "module_callbacks.hpp"
 
-se::SimpleTask task_module_control_loop;
-se::SimpleTask task_module_update_values_for_can;
+se::SimpleTask task_module_check_for_errors;
 
 se::motor::VescMotorSettings settings_motor1;
 se::motor::VescMotorSettings settings_motor2;
@@ -16,6 +18,13 @@ se::motor::VescMotorSettings settings_motor3;
 se::motor::VescMotorSettings settings_motor4;
 se::motor::VescMotorSettings settings_motor5;
 se::motor::VescMotorSettings settings_motor6;
+
+joint_can_config config_joint1;
+joint_can_config config_joint2;
+joint_can_config config_joint3;
+joint_can_config config_joint4;
+joint_can_config config_joint5;
+joint_can_config config_joint6;
 
 std::shared_ptr<se::memory::FramI2C> fram;
 std::vector<joint> joints_arr;
@@ -25,7 +34,6 @@ joint joint3;
 magic_number magic_number_eeprom;
 board_id id;
 
-// Default settings for VESC motors
 void init_vesc_motor_settings()
 {
   settings_motor1.base_address = VESC_MOTOR_1_ID;
@@ -57,6 +65,117 @@ void init_vesc_motor_settings()
   settings_motor6.polar_pairs = VESC_MOTOR_6_PAIRS;
 }
 
+void init_joint_can_config()
+{
+  config_joint1 = {0xff0,
+                   0x000,
+                   0x610,
+                   0x000,
+
+                   CAN_KONARM_1_STATUS_FRAME_ID,
+                   CAN_KONARM_1_SET_POS_FRAME_ID,
+                   CAN_KONARM_1_GET_POS_FRAME_ID,
+                   CAN_KONARM_1_CLEAR_ERRORS_FRAME_ID,
+                   CAN_KONARM_1_GET_ERRORS_FRAME_ID,
+                   CAN_KONARM_1_SET_CONTROL_MODE_FRAME_ID,
+                   CAN_KONARM_1_SET_EFFECTOR_POSITION_FRAME_ID,
+                   CAN_KONARM_1_GET_TORQUE_FRAME_ID,
+                   CAN_KONARM_1_GET_CONFIG_FRAME_ID,
+                   CAN_KONARM_1_SEND_CONFIG_FRAME_ID,
+                   CAN_KONARM_1_SET_AND_RESET_FRAME_ID,
+                   CAN_KONARM_1_SET_TORQUE_FRAME_ID};
+
+  config_joint2 = {0xff0,
+                   0x000,
+                   0x620,
+                   0x000,
+
+                   CAN_KONARM_2_STATUS_FRAME_ID,
+                   CAN_KONARM_2_SET_POS_FRAME_ID,
+                   CAN_KONARM_2_GET_POS_FRAME_ID,
+                   CAN_KONARM_2_CLEAR_ERRORS_FRAME_ID,
+                   CAN_KONARM_2_GET_ERRORS_FRAME_ID,
+                   CAN_KONARM_2_SET_CONTROL_MODE_FRAME_ID,
+                   CAN_KONARM_2_SET_EFFECTOR_POSITION_FRAME_ID,
+                   CAN_KONARM_2_GET_TORQUE_FRAME_ID,
+                   CAN_KONARM_2_GET_CONFIG_FRAME_ID,
+                   CAN_KONARM_2_SEND_CONFIG_FRAME_ID,
+                   CAN_KONARM_2_SET_AND_RESET_FRAME_ID,
+                   CAN_KONARM_2_SET_TORQUE_FRAME_ID};
+
+  config_joint3 = {0xff0,
+                   0x000,
+                   0x630,
+                   0x000,
+
+                   CAN_KONARM_3_STATUS_FRAME_ID,
+                   CAN_KONARM_3_SET_POS_FRAME_ID,
+                   CAN_KONARM_3_GET_POS_FRAME_ID,
+                   CAN_KONARM_3_CLEAR_ERRORS_FRAME_ID,
+                   CAN_KONARM_3_GET_ERRORS_FRAME_ID,
+                   CAN_KONARM_3_SET_CONTROL_MODE_FRAME_ID,
+                   CAN_KONARM_3_SET_EFFECTOR_POSITION_FRAME_ID,
+                   CAN_KONARM_3_GET_TORQUE_FRAME_ID,
+                   CAN_KONARM_3_GET_CONFIG_FRAME_ID,
+                   CAN_KONARM_3_SEND_CONFIG_FRAME_ID,
+                   CAN_KONARM_3_SET_AND_RESET_FRAME_ID,
+                   CAN_KONARM_3_SET_TORQUE_FRAME_ID};
+
+  config_joint4 = {0xff0,
+                   0x000,
+                   0x640,
+                   0x000,
+
+                   CAN_KONARM_4_STATUS_FRAME_ID,
+                   CAN_KONARM_4_SET_POS_FRAME_ID,
+                   CAN_KONARM_4_GET_POS_FRAME_ID,
+                   CAN_KONARM_4_CLEAR_ERRORS_FRAME_ID,
+                   CAN_KONARM_4_GET_ERRORS_FRAME_ID,
+                   CAN_KONARM_4_SET_CONTROL_MODE_FRAME_ID,
+                   CAN_KONARM_4_SET_EFFECTOR_POSITION_FRAME_ID,
+                   CAN_KONARM_4_GET_TORQUE_FRAME_ID,
+                   CAN_KONARM_4_GET_CONFIG_FRAME_ID,
+                   CAN_KONARM_4_SEND_CONFIG_FRAME_ID,
+                   CAN_KONARM_4_SET_AND_RESET_FRAME_ID,
+                   CAN_KONARM_4_SET_TORQUE_FRAME_ID};
+
+  config_joint5 = {0xff0,
+                   0x000,
+                   0x650,
+                   0x000,
+
+                   CAN_KONARM_5_STATUS_FRAME_ID,
+                   CAN_KONARM_5_SET_POS_FRAME_ID,
+                   CAN_KONARM_5_GET_POS_FRAME_ID,
+                   CAN_KONARM_5_CLEAR_ERRORS_FRAME_ID,
+                   CAN_KONARM_5_GET_ERRORS_FRAME_ID,
+                   CAN_KONARM_5_SET_CONTROL_MODE_FRAME_ID,
+                   CAN_KONARM_5_SET_EFFECTOR_POSITION_FRAME_ID,
+                   CAN_KONARM_5_GET_TORQUE_FRAME_ID,
+                   CAN_KONARM_5_GET_CONFIG_FRAME_ID,
+                   CAN_KONARM_5_SEND_CONFIG_FRAME_ID,
+                   CAN_KONARM_5_SET_AND_RESET_FRAME_ID,
+                   CAN_KONARM_5_SET_TORQUE_FRAME_ID};
+
+  config_joint6 = {0xff0,
+                   0x000,
+                   0x660,
+                   0x000,
+
+                   CAN_KONARM_6_STATUS_FRAME_ID,
+                   CAN_KONARM_6_SET_POS_FRAME_ID,
+                   CAN_KONARM_6_GET_POS_FRAME_ID,
+                   CAN_KONARM_6_CLEAR_ERRORS_FRAME_ID,
+                   CAN_KONARM_6_GET_ERRORS_FRAME_ID,
+                   CAN_KONARM_6_SET_CONTROL_MODE_FRAME_ID,
+                   CAN_KONARM_6_SET_EFFECTOR_POSITION_FRAME_ID,
+                   CAN_KONARM_6_GET_TORQUE_FRAME_ID,
+                   CAN_KONARM_6_GET_CONFIG_FRAME_ID,
+                   CAN_KONARM_6_SEND_CONFIG_FRAME_ID,
+                   CAN_KONARM_6_SET_AND_RESET_FRAME_ID,
+                   CAN_KONARM_6_SET_TORQUE_FRAME_ID};
+}
+
 // MODULES FUNCTIONS
 void write_board_id()
 {
@@ -64,6 +183,41 @@ void write_board_id()
   id.id = 0x0;
   STMEPIC_NONE_OR_HRESET(fram->writeStruct<board_id>(2, id));
   // TODO : Dodać jakiś indykator typu uart/led, że skończył się zapis
+}
+
+se::Status add_callbacks()
+{
+  for (auto &joint : joints_arr)
+  {
+    if (joint.motor != nullptr)
+    {
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_clear_errors_frame_id, can_callback_clear_errors, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_get_config_frame_id, can_callback_get_config, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_get_errors_frame_id, can_callback_get_errors, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_get_pos_frame_id, can_callback_get_pos, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_get_torque_frame_id, can_callback_get_torque, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_send_config_frame_id, can_callback_send_config, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_set_and_reset_frame_id, can_callback_set_and_reset, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_set_control_mode_frame_id, can_callback_set_control_mode, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_set_effector_position_frame_id, can_callback_set_effector_position, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_set_pos_frame_id, can_callback_set_pos, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_set_torque_frame_id, can_callback_set_torque, (void *)&joint));
+      STMEPIC_RETURN_ON_ERROR(
+          can1->add_callback(joint.config.can_konarm_status_frame_id, can_callback_status, (void *)&joint));
+    }
+  }
+  return se::Status::OK();
 }
 
 se::Status read_board_id()
@@ -86,17 +240,6 @@ se::Status init_joints_arr()
 {
   if (id.id == BOARD_ID_0 or id.id == BOARD_ID_1 or id.id == BOARD_ID_2)
   {
-    auto maybe_module0 = ModuleType::Make(nullptr, get_unique_id());
-    if (!maybe_module0.ok())
-    {
-      return se::Status::Invalid(maybe_module0.status().to_string().c_str());
-    }
-    joint1.module = maybe_module0.valueOrDie();
-    joint1.joint_can_interface.joint_idx = 0;
-
-    joint2.module = nullptr;
-    joint3.module = nullptr;
-
     auto maybe_encoder0 = se::encoders::EncoderAbsoluteMagneticMT6701::Make(i2c);
     if (!maybe_encoder0.ok())
     {
@@ -116,19 +259,22 @@ se::Status init_joints_arr()
     case BOARD_ID_0:
       joint1.motor->device_set_settings(settings_motor1);
       joint1.motor->set_max_velocity(VESC_MOTOR_1_VEL);
+      joint1.config = config_joint1;
       break;
     case BOARD_ID_1:
       joint1.motor->device_set_settings(settings_motor2);
       joint1.motor->set_max_velocity(VESC_MOTOR_2_VEL);
+      joint1.config = config_joint2;
       break;
     case BOARD_ID_2:
       joint1.motor->device_set_settings(settings_motor3);
       joint1.motor->set_max_velocity(VESC_MOTOR_3_VEL);
+      joint1.config = config_joint3;
       break;
     }
 
     joint1.motor->device_start();
-    joint2.encoder->device_start();
+    joint1.encoder->device_start();
 
     joint2.encoder = nullptr;
     joint2.motor = nullptr;
@@ -144,30 +290,6 @@ se::Status init_joints_arr()
   }
   else if (id.id == BOARD_ID_3)
   {
-    auto maybe_module0 = ModuleType::Make(nullptr, get_unique_id());
-    if (!maybe_module0.ok())
-    {
-      return se::Status::Invalid(maybe_module0.status().to_string().c_str());
-    }
-    joint1.module = maybe_module0.valueOrDie();
-    joint1.joint_can_interface.joint_idx = 0;
-
-    auto maybe_module1 = ModuleType::Make(nullptr, get_unique_id());
-    if (!maybe_module1.ok())
-    {
-      return se::Status::Invalid(maybe_module1.status().to_string().c_str());
-    }
-    joint2.module = maybe_module1.valueOrDie();
-    joint2.joint_can_interface.joint_idx = 1;
-
-    auto maybe_module2 = ModuleType::Make(nullptr, get_unique_id());
-    if (!maybe_module2.ok())
-    {
-      return se::Status::Invalid(maybe_module2.status().to_string().c_str());
-    }
-    joint3.module = maybe_module2.valueOrDie();
-    joint3.joint_can_interface.joint_idx = 2;
-
     auto maybe_encoder0 = se::encoders::EncoderAbsoluteMagneticMT6701::Make(i2c);
     if (!maybe_encoder0.ok())
     {
@@ -203,7 +325,7 @@ se::Status init_joints_arr()
     joint1.motor->device_start();
 
     auto maybe_motor1 = se::motor::VescMotor::Make(can2);
-    if (!maybe_module1.ok())
+    if (!maybe_motor1.ok())
     {
       return se::Status::Invalid(maybe_motor1.status().to_string().c_str());
     }
@@ -222,6 +344,10 @@ se::Status init_joints_arr()
     joint3.motor->set_max_velocity(VESC_MOTOR_6_VEL);
     joint3.motor->device_start();
 
+    joint1.config = config_joint4;
+    joint2.config = config_joint5;
+    joint3.config = config_joint6;
+
     joints_arr.reserve(3);
 
     joints_arr.push_back(joint1);
@@ -231,18 +357,21 @@ se::Status init_joints_arr()
   return se::Status::OK();
 }
 
-se::Status module_task(se::SimpleTask &, void *args)
+se::Status check_for_errors(se::SimpleTask &, void *args)
 {
-  (void)args;
   for (auto &joint : joints_arr)
-    joint.module->control_loop();
-  return se::Status::OK();
-}
+  {
+    // Encoders
+    if (!joint.encoder->device_is_connected().valueOrDie())
+    {
+    }
 
-se::Status update_values_for_can(se::SimpleTask &, void *args)
-{
-  (void)args;
-  // TODO : dodać zczytywanie wartości
+    // VESC
+    if (!joint.motor->device_is_connected().valueOrDie())
+    {
+    }
+  }
+
   return se::Status::OK();
 }
 
@@ -264,24 +393,14 @@ se::Status init_board()
   };
 #else
   init_vesc_motor_settings();
+  init_joint_can_config();
   STMEPIC_RETURN_ON_ERROR(read_board_id());
   STMEPIC_RETURN_ON_ERROR(init_joints_arr());
+  STMEPIC_RETURN_ON_ERROR(add_callbacks());
 
-  task_module_control_loop.task_init(module_task, nullptr, 1, nullptr, 1048,
-                                     tskIDLE_PRIORITY + 1, "ModuleControlLoop");
-  task_module_control_loop.task_run();
-
-  for (auto &joint : joints_arr)
-  {
-    if (joint.module != nullptr)
-    {
-      joint.module->start_driver();
-    }
-  }
-
-  task_module_update_values_for_can.task_init(update_values_for_can, nullptr, 1,
-                                              nullptr, 1048, tskIDLE_PRIORITY, "UpdateValuesForCan");
-  task_module_update_values_for_can.task_run();
+  task_module_check_for_errors.task_init(check_for_errors, nullptr, 1,
+                                         nullptr, 1048, tskIDLE_PRIORITY, "CheckForErrors");
+  task_module_check_for_errors.task_run();
 
   return se::Status::OK();
 #endif

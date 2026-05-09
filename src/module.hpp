@@ -71,29 +71,34 @@ extern se::motor::VescMotorSettings settings_motor4;
 extern se::motor::VescMotorSettings settings_motor5;
 extern se::motor::VescMotorSettings settings_motor6;
 
-class JointInterface : public mcan::konarm_hat::McCanSlaveInterface_t
+struct joint_can_config
 {
-public:
-  uint8_t joint_idx = 0;
+  uint32_t can_filter_mask_high;
+  uint32_t can_filter_mask_low;
+  uint32_t can_filter_id_high;
+  uint32_t can_filter_id_low;
 
-  void callback_write_set_position(mcan::konarm_hat::commands::SetPosition &var);
-  void callback_write_set_torque(mcan::konarm_hat::commands::SetTorque &var);
-  void callback_write_set_control_mode(mcan::konarm_hat::commands::SetControlMode &var);
-  void callback_write_config(mcan::konarm_hat::configs::Config &var);
-  void callback_write_clear_errors(mcan::konarm_hat::commands::ClearErrors &var);
-  void callback_write_set_and_reset(mcan::konarm_hat::commands::SetAndReset &var);
+  uint32_t can_konarm_status_frame_id;
+  uint32_t can_konarm_set_pos_frame_id;
+  uint32_t can_konarm_get_pos_frame_id;
+  uint32_t can_konarm_clear_errors_frame_id;
+  uint32_t can_konarm_get_errors_frame_id;
+  uint32_t can_konarm_set_control_mode_frame_id;
+  uint32_t can_konarm_set_effector_position_frame_id;
 
-  auto get_write_callbacks()
-  {
-    return std::make_tuple(
-        std::make_pair(&JointInterface::callback_write_set_position, &JointInterface::set_position),
-        std::make_pair(&JointInterface::callback_write_set_torque, &JointInterface::set_torque),
-        std::make_pair(&JointInterface::callback_write_set_control_mode, &JointInterface::set_control_mode),
-        std::make_pair(&JointInterface::callback_write_config, &JointInterface::config),
-        std::make_pair(&JointInterface::callback_write_clear_errors, &JointInterface::clear_errors),
-        std::make_pair(&JointInterface::callback_write_set_and_reset, &JointInterface::set_and_reset));
-  }
+  uint32_t can_konarm_get_torque_frame_id;
+  uint32_t can_konarm_get_config_frame_id;
+  uint32_t can_konarm_send_config_frame_id;
+  uint32_t can_konarm_set_and_reset_frame_id;
+  uint32_t can_konarm_set_torque_frame_id;
 };
+
+extern joint_can_config config_joint1;
+extern joint_can_config config_joint2;
+extern joint_can_config config_joint3;
+extern joint_can_config config_joint4;
+extern joint_can_config config_joint5;
+extern joint_can_config config_joint6;
 
 inline uint32_t get_unique_id()
 {
@@ -103,16 +108,11 @@ inline uint32_t get_unique_id()
   return (t1 ^ t2 ^ t3) & 0x1FFFFF; // Return only the lower 21 bits
 }
 
-extern se::SimpleTask task_module_control_loop;
-extern se::SimpleTask task_module_update_values_for_can;
-
-using ModuleType = mcan::McSlaveDriver<JointInterface,
-                                       mcan::konarm_hat::Hardware_t>;
+extern se::SimpleTask task_module_check_for_errors;
 
 struct joint
 {
-  JointInterface joint_can_interface;
-  std::shared_ptr<ModuleType> module;
+  joint_can_config config;
   std::shared_ptr<se::motor::VescMotor> motor;
   std::shared_ptr<se::encoders::EncoderAbsoluteMagneticMT6701> encoder;
 };
@@ -136,8 +136,11 @@ extern magic_number magic_number_eeprom;
 extern board_id id;
 
 void write_board_id();
+se::Status add_callbacks();
 se::Status read_board_id();
 se::Status init_joints_arr();
-void init_vesc_motor_settings();
 
-se::Status update_values_for_can(se::SimpleTask &, void *args);
+void init_vesc_motor_settings();
+void init_joint_can_config();
+
+se::Status check_for_errors(se::SimpleTask &, void *args);

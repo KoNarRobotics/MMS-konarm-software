@@ -10,7 +10,10 @@
 #include "can_messages.h"
 #include "module_callbacks.hpp"
 
+// TODO : sprawdzanie, czy każde urządzenie zostało wystartowane
+
 se::SimpleTask task_module_check_for_errors;
+se::SimpleTask task_blink_error;
 
 se::motor::VescMotorSettings settings_motor1;
 se::motor::VescMotorSettings settings_motor2;
@@ -183,7 +186,9 @@ void write_board_id()
   STMEPIC_NONE_OR_HRESET(fram->writeStruct<magic_number>(0, magic_number_eeprom));
   id.id = 0x0;
   STMEPIC_NONE_OR_HRESET(fram->writeStruct<board_id>(2, id));
-  // TODO : Dodać jakiś indykator typu uart/led, że skończył się zapis
+  std::string info = "Board id writen succesfully to EEPROM.";
+  log_info(info);
+  gpio_user_led_1.toggle();
 }
 
 se::Status add_callbacks()
@@ -358,22 +363,98 @@ se::Status init_joints_arr()
   return se::Status::OK();
 }
 
-// TODO : Dodać jakoś sygnalizacje errorów z silnikiem
-
-se::Status check_for_errors(se::SimpleTask &, void *args)
+se::Status check_for_errors(se::SimpleTask &task_handler, void *args)
 {
+  (void)args;
+  (void)task_handler;
   // Joint errors
   for (auto &joint : joints_arr)
   {
-    joint.errors.encoder_motor_disconnect = !joint.encoder->device_is_connected().valueOrDie();
-
-    if (!joint.motor->device_is_connected().valueOrDie())
+    if (joint.encoder != nullptr)
     {
-      // do sth
+      joint.errors.encoder_motor_disconnect = joint.encoder->device_is_connected().valueOrDie();
+      joint.errors.motor_disconnect = joint.motor->device_is_connected().valueOrDie();
     }
   }
 
   return se::Status::OK();
+}
+
+unsigned int get_amount_of_errors()
+{
+  unsigned int amount_of_errors = (uint8_t)error_board.baord_overvoltage +
+                                  (uint8_t)error_board.baord_undervoltage + (uint8_t)error_board.controler_motor_limit_position +
+                                  (uint8_t)error_board.temp_board_overheating + (uint8_t)error_board.temp_board_sensor_disconnect +
+                                  (uint8_t)error_board.temp_driver_sensor_disconnect + (uint8_t)error_board.temp_driver_sensor_disconnect +
+                                  (uint8_t)error_board.temp_engine_sensor_disconnect + (uint8_t)error_board.can_disconnected +
+                                  (uint8_t)error_board.can_error;
+
+  for (auto &joint : joints_arr)
+  {
+    if (joint.motor != nullptr)
+    {
+      amount_of_errors += (uint8_t)joint.errors.encoder_arm_disconnect + (uint8_t)joint.errors.encoder_motor_disconnect +
+                          (uint8_t)joint.errors.motor_disconnect + (uint8_t)joint.errors.temp_driver_overheating +
+                          (uint8_t)joint.errors.temp_engine_overheating;
+    }
+  }
+
+  return amount_of_errors;
+}
+
+se::Status blink_error(se::SimpleTask &task_handler, void *args)
+{
+  (void)args;
+  auto errors_count = get_amount_of_errors();
+  task_handler.task_set_period(FREQUENCY_TO_PERIOD_MS(errors_count));
+
+  if (errors_count)
+  {
+    gpio_user_led_1.toggle();
+  }
+  else
+  {
+    gpio_user_led_1.write(GPIO_PIN_RESET);
+  }
+  return se::Status::OK();
+}
+
+se::Status log_data(se::SimpleTask &task_handler, void *args)
+{
+  (void)task_handler;
+  (void)args;
+  for (auto &joint : joints_arr)
+  {
+    if (joint.motor != nullptr && joint.encoder != nullptr)
+    {
+      log_info(
+          se::Logger::parse_to_json_format("BrdID", id.id) +
+          se::Logger::parse_to_json_format("JntID", joint.config.can_konarm_status_frame_id >> 4) +
+          // se::Logger::parse_to_json_format("EAang") +
+          se::Logger::parse_to_json_format("EMang", joint.encoder->get_angle()) +
+          se::Logger::parse_to_json_format("EVel", joint.encoder->get_velocity()) +
+          se::Logger::parse_to_json_format("EPos", joint.encoder->get_absoulute_angle()) +
+          se::Logger::parse_to_json_format("MPos", joint.motor->get_position()) +
+          se::Logger::parse_to_json_format("MVel", joint.motor->get_velocity()) +
+          se::Logger::parse_to_json_format("Err", get_amount_of_errors()) +
+          se::Logger::parse_to_json_format(
+              "Errs",
+              se::Logger::parse_to_json_format("teng", BOOL_TO_STRING(joint.errors.temp_engine_overheating)) +
+                  se::Logger::parse_to_json_format("tdri", BOOL_TO_STRING(joint.errors.temp_driver_overheating)) +
+                  se::Logger::parse_to_json_format("tboa", BOOL_TO_STRING(error_board.temp_board_overheating)) +
+                  se::Logger::parse_to_json_format("tengdis", BOOL_TO_STRING(error_board.temp_engine_sensor_disconnect)) +
+                  se::Logger::parse_to_json_format("tdrivdis", BOOL_TO_STRING(error_board.temp_driver_sensor_disconnect)) +
+                  se::Logger::parse_to_json_format("tborddis", BOOL_TO_STRING(error_board.temp_board_sensor_disconnect)) +
+                  se::Logger::parse_to_json_format("encarmmdis", BOOL_TO_STRING(joint.errors.encoder_arm_disconnect)) +
+                  se::Logger::parse_to_json_format("encmotdis", BOOL_TO_STRING(joint.errors.encoder_motor_disconnect)) +
+                  se::Logger::parse_to_json_format("bovolt", BOOL_TO_STRING(error_board.baord_overvoltage)) +
+                  se::Logger::parse_to_json_format("buvolt", BOOL_TO_STRING(error_board.baord_undervoltage)) +
+                  se::Logger::parse_to_json_format("candis", BOOL_TO_STRING(error_board.can_disconnected)) +
+                  se::Logger::parse_to_json_format("canerr", BOOL_TO_STRING(error_board.can_error)) +
+                  se::Logger::parse_to_json_format("motlimit", BOOL_TO_STRING(error_board.controler_motor_limit_position), false),
+              false, true));
+    }
+  }
 }
 
 se::Status init_board()
@@ -402,6 +483,10 @@ se::Status init_board()
   task_module_check_for_errors.task_init(check_for_errors, nullptr, 1,
                                          nullptr, 1048, tskIDLE_PRIORITY, "CheckForErrors");
   task_module_check_for_errors.task_run();
+
+  task_blink_error.task_init(blink_error, nullptr, 1,
+                             nullptr, 1048, tskIDLE_PRIORITY + 1, "BlinkWhenError");
+  task_blink_error.task_run();
 
   return se::Status::OK();
 #endif

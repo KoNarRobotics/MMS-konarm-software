@@ -107,10 +107,11 @@ struct ErrorJoint
 {
   bool encoder_arm_disconnect = false;
   bool encoder_motor_disconnect = false;
-  bool can_disconnected = false;
-  bool can_error = false;
+
   bool temp_engine_overheating = false;
   bool temp_driver_overheating = false;
+
+  bool motor_disconnect = false;
 };
 
 struct ErrorBoard
@@ -123,6 +124,9 @@ struct ErrorBoard
   // board errors
   bool baord_overvoltage = false;
   bool baord_undervoltage = false;
+
+  bool can_disconnected = false;
+  bool can_error = false;
 
   // other errors
   bool controler_motor_limit_position = false;
@@ -138,7 +142,11 @@ inline uint32_t get_unique_id()
   return (t1 ^ t2 ^ t3) & 0x1FFFFF; // Return only the lower 21 bits
 }
 
+unsigned int get_amount_of_errors();
+
 extern se::SimpleTask task_module_check_for_errors;
+extern se::SimpleTask task_blink_error;
+extern se::SimpleTask task_log_data;
 
 struct joint
 {
@@ -166,12 +174,14 @@ extern joint joint3;
 extern magic_number magic_number_eeprom;
 extern board_id id;
 
+void init_vesc_motor_settings();
+void init_joint_can_config();
 void write_board_id();
+
 se::Status add_callbacks();
 se::Status read_board_id();
 se::Status init_joints_arr();
 
-void init_vesc_motor_settings();
-void init_joint_can_config();
-
 se::Status check_for_errors(se::SimpleTask &, void *args);
+se::Status blink_error(se::SimpleTask &task_handler, void *args);
+se::Status log_data(se::SimpleTask &task_handler, void *args);

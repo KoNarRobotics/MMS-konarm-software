@@ -14,6 +14,8 @@ void can_callback_set_torque(se::CanBase &can, se::CanDataFrame &received_msg, v
 
 void can_callback_get_pos(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
 
+void can_callback_get_torque(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
+
 void can_callback_status(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
 
 void can_callback_clear_errors(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
@@ -25,8 +27,6 @@ void can_callback_default(se::CanBase &can, se::CanDataFrame &received_msg, void
 void can_callback_set_control_mode(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
 
 void can_callback_set_effector_position(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
-
-void can_callback_get_torque(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
 
 void can_callback_get_config(se::CanBase &can, se::CanDataFrame &received_msg, void *args);
 

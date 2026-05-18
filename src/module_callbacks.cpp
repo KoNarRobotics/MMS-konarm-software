@@ -16,7 +16,10 @@ void can_callback_set_pos(se::CanBase &can, se::CanDataFrame &received_msg, void
 
     can_konarm_1_set_pos_t signals;
     if(can_konarm_1_set_pos_unpack(&signals, received_msg.data, received_msg.data_size))
-        return; // unpack error
+    {
+        this_joint->motor->status = Status::ExecutionError("Failed to unpack set torque message");
+        return;
+    }
     this_joint->motor->set_velocity(signals.velocity);
     this_joint->motor->set_position(signals.position);
     log_debug("Set position:" + std::to_string(signals.position) + "velocity:" + std::to_string(signals.velocity));
@@ -29,7 +32,10 @@ void can_callback_set_torque(se::CanBase &can, se::CanDataFrame &received_msg, v
 
     can_konarm_1_set_torque_t signals;
     if(can_konarm_1_set_torque_unpack(&signals, received_msg.data, received_msg.data_size))
-        return; // unpack error
+    {
+        this_joint->motor->status = Status::ExecutionError("Failed to unpack set torque message");
+        return;
+    }
     this_joint->motor->set_torque(signals.torque);
     log_debug("Set torque:" + std::to_string(signals.torque));
 }
@@ -74,17 +80,52 @@ void can_callback_status(se::CanBase &can, se::CanDataFrame &received_msg, void 
 
 void can_callback_clear_errors(se::CanBase &can, se::CanDataFrame &received_msg, void *args)
 {
+    (void) can;
+    (void) received_msg;
+
+    joint *this_joint=static_cast<joint*>(args);
+    this_joint->errors.can_error=false;
 }
 
 void can_callback_get_errors(se::CanBase &can, se::CanDataFrame &received_msg, void *args)
 {
+    (void) received_msg;
+    joint *this_joint=static_cast<joint*>(args);
+    se::CanDataFrame send_msg;
+    can_konarm_1_get_errors_t src_p;
+
+    // According to module.hpp:
+    
+    // There are none temp sensors on boards.
+    // Temp variables are kept for ROS compatibility
+    // Same with voltage
+
+    send_msg.frame_id                    = config.can_konarm_get_errors_frame_id;
+    src_p.temp_engine_overheating        = this_joint->errors.temp_engine_overheating;
+    src_p.temp_driver_overheating        = this_joint->errors.temp_driver_overheating;
+    src_p.temp_board_overheating         = error_board.temp_board_overheating;
+    src_p.temp_engine_sensor_disconnect  = error_board.temp_engine_sensor_disconnect;
+    src_p.temp_driver_sensor_disconnect  = error_board.temp_driver_sensor_disconnect;
+    src_p.temp_board_sensor_disconnect   = error_board.temp_board_sensor_disconnect;
+    src_p.encoder_arm_disconnect         = this_joint->errors.encoder_arm_disconnect;
+    src_p.encoder_motor_disconnect       = this_joint->errors.encoder_motor_disconnect;
+    src_p.board_overvoltage              = error_board.board_overvoltage;
+    src_p.board_undervoltage             = error_board.board_undervoltage;
+    src_p.can_disconnected               = this_joint->errors.can_disconnected;
+    src_p.can_error                      = this_joint->errors.can_error;
+    src_p.controler_motor_limit_position = error_board.controler_motor_limit_position;
+    send_msg.data_size                    = CAN_KONARM_1_GET_ERRORS_LENGTH;
+    (void)can_konarm_1_get_errors_pack(send_msg.data, &src_p, send_msg.data_size);
+    (void)can.write(send_msg);
 }
 
 void can_callback_default(se::CanBase &can, se::CanDataFrame &received_msg, void *args)
 {
     (void) can;
-    (void) args;
     (void) received_msg;
+
+    joint *this_joint=static_cast<joint*>(args);
+    this_joint->errors.can_error=true;
 }
 
 void can_callback_set_control_mode(se::CanBase &can, se::CanDataFrame &received_msg, void *args)

@@ -121,8 +121,8 @@ struct ErrorBoard
   bool temp_board_sensor_disconnect = false;
 
   // board errors
-  bool baord_overvoltage = false;
-  bool baord_undervoltage = false;
+  bool board_overvoltage = false;
+  bool board_undervoltage = false;
 
   // other errors
   bool controler_motor_limit_position = false;
